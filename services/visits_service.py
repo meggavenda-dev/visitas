@@ -1,22 +1,7 @@
 from __future__ import annotations
 from datetime import datetime, timedelta
-from core.utils import new_id, now_local, today_local, parse_dt
+from core.utils import new_uuid, now_local, today_local, parse_dt
 from core.constants import VisitStatus
-
-
-def make_visit(clinic_id: str, data_hora: datetime, objetivo: str, assuntos: str, status: str):
-    now = now_local().strftime('%Y-%m-%d %H:%M:%S')
-    return {
-        'id': new_id(),
-        'clinic_id': clinic_id,
-        'data_hora': data_hora.isoformat(timespec='minutes'),
-        'status': status or VisitStatus.AGENDADA.value,
-        'objetivo': objetivo or '',
-        'assuntos': assuntos or '',
-        'criado_em': now,
-        'atualizado_em': now,
-    }
-
 
 def touch(visit, creating=False):
     now = now_local().strftime('%Y-%m-%d %H:%M:%S')
@@ -25,6 +10,17 @@ def touch(visit, creating=False):
     visit['atualizado_em'] = now
     return visit
 
+def make_visit(clinic_id: int, data_hora: datetime, objetivo: str, assuntos: str, status: str):
+    v = {
+        'id': new_uuid(),
+        'clinic_id': int(clinic_id),
+        'data_hora': data_hora.isoformat(timespec='minutes'),
+        'status': status or VisitStatus.AGENDADA.value,
+        'objetivo': objetivo or '',
+        'assuntos': assuntos or '',
+    }
+    touch(v, creating=True)
+    return v
 
 def categorize_visits(visits):
     today = today_local()
