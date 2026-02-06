@@ -27,18 +27,19 @@ def categorize_visits(visits):
     now = now_local()
 
     def v_dt(v):
-        dt = parse_dt(v.get('data_hora',''))
+        dt = parse_dt(v.get('data_hora', ''))
         return dt or datetime.max
 
     visits_sorted = sorted(visits, key=v_dt)
-    today_list=[]; week_list=[]; overdue=[]
+    today_list, week_list, overdue = [], [], []
 
     for v in visits_sorted:
-        dt = parse_dt(v.get('data_hora',''))
+        dt = parse_dt(v.get('data_hora', ''))
         if not dt:
             continue
         if v.get('status') in (VisitStatus.REALIZADA.value, VisitStatus.CANCELADA.value):
             continue
+
         d = dt.date()
         if d == today:
             today_list.append(v)
