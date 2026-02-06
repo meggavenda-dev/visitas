@@ -5,22 +5,24 @@ class SupabaseRepo:
     def __init__(self, url: str, key: str):
         self.client = create_client(url, key)
 
+    # clinics.id é BIGINT
     def list_clinics(self):
         return self.client.table('clinics').select('*').order('nome_cadastro').execute().data
 
-    def get_clinic(self, clinic_id: str):
-        data = self.client.table('clinics').select('*').eq('id', clinic_id).limit(1).execute().data
+    def get_clinic(self, clinic_id: int):
+        data = self.client.table('clinics').select('*').eq('id', int(clinic_id)).limit(1).execute().data
         return data[0] if data else None
 
     def upsert_clinic(self, clinic):
+        clinic['id'] = int(clinic['id'])
         data = self.client.table('clinics').upsert(clinic).execute().data
         return data[0] if data else clinic
 
-    def delete_clinic(self, clinic_id: str):
-        self.client.table('clinics').delete().eq('id', clinic_id).execute()
+    def delete_clinic(self, clinic_id: int):
+        self.client.table('clinics').delete().eq('id', int(clinic_id)).execute()
 
-    def list_contacts(self, clinic_id: str):
-        return self.client.table('contacts').select('*').eq('clinic_id', clinic_id).execute().data
+    def list_contacts(self, clinic_id: int):
+        return self.client.table('contacts').select('*').eq('clinic_id', int(clinic_id)).execute().data
 
     def upsert_contact(self, contact):
         data = self.client.table('contacts').upsert(contact).execute().data
@@ -37,6 +39,9 @@ class SupabaseRepo:
         return data[0] if data else None
 
     def upsert_visit(self, visit):
+        # visits.clinic_id é bigint
+        if 'clinic_id' in visit:
+            visit['clinic_id'] = int(visit['clinic_id'])
         data = self.client.table('visits').upsert(visit).execute().data
         return data[0] if data else visit
 
