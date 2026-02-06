@@ -1,7 +1,7 @@
 from __future__ import annotations
 import json
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 FILES = {
@@ -24,15 +24,23 @@ class LocalJsonRepo:
     def _write(self, key: str, rows: List[Dict[str, Any]]):
         FILES[key].write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
 
+    # Clinics (id é int)
     def list_clinics(self):
-        return self._read('clinics')
+        rows = self._read('clinics')
+        # garantir que id seja int quando possível
+        for r in rows:
+            if isinstance(r.get('id'), str) and r['id'].isdigit():
+                r['id'] = int(r['id'])
+        return rows
 
-    def get_clinic(self, clinic_id: str):
-        return next((c for c in self._read('clinics') if c.get('id') == clinic_id), None)
+    def get_clinic(self, clinic_id: int):
+        clinic_id = int(clinic_id)
+        return next((c for c in self.list_clinics() if int(c.get('id')) == clinic_id), None)
 
     def upsert_clinic(self, clinic: Dict[str, Any]):
-        rows = self._read('clinics')
-        idx = next((i for i, c in enumerate(rows) if c.get('id') == clinic.get('id')), None)
+        clinic['id'] = int(clinic['id'])
+        rows = self.list_clinics()
+        idx = next((i for i, c in enumerate(rows) if int(c.get('id')) == clinic['id']), None)
         if idx is None:
             rows.append(clinic)
         else:
@@ -40,16 +48,19 @@ class LocalJsonRepo:
         self._write('clinics', rows)
         return clinic
 
-    def delete_clinic(self, clinic_id: str):
-        self._write('clinics', [c for c in self._read('clinics') if c.get('id') != clinic_id])
-        self._write('contacts', [c for c in self._read('contacts') if c.get('clinic_id') != clinic_id])
-        visits = [v for v in self._read('visits') if v.get('clinic_id') != clinic_id]
+    def delete_clinic(self, clinic_id: int):
+        clinic_id = int(clinic_id)
+        self._write('clinics', [c for c in self.list_clinics() if int(c.get('id')) != clinic_id])
+        self._write('contacts', [c for c in self._read('contacts') if int(c.get('clinic_id')) != clinic_id])
+        visits = [v for v in self._read('visits') if int(v.get('clinic_id')) != clinic_id]
         self._write('visits', visits)
-        keep_visit_ids = {v.get('id') for v in visits}
-        self._write('notes', [n for n in self._read('notes') if n.get('visit_id') in keep_visit_ids])
+        keep = {v.get('id') for v in visits}
+        self._write('notes', [n for n in self._read('notes') if n.get('visit_id') in keep])
 
-    def list_contacts(self, clinic_id: str):
-        return [c for c in self._read('contacts') if c.get('clinic_id') == clinic_id]
+    # Contacts
+    def list_contacts(self, clinic_id: int):
+        clinic_id = int(clinic_id)
+        return [c for c in self._read('contacts') if int(c.get('clinic_id')) == clinic_id]
 
     def upsert_contact(self, contact: Dict[str, Any]):
         rows = self._read('contacts')
@@ -64,6 +75,7 @@ class LocalJsonRepo:
     def delete_contact(self, contact_id: str):
         self._write('contacts', [c for c in self._read('contacts') if c.get('id') != contact_id])
 
+    # Visits
     def list_visits(self):
         return self._read('visits')
 
@@ -84,6 +96,7 @@ class LocalJsonRepo:
         self._write('visits', [v for v in self._read('visits') if v.get('id') != visit_id])
         self._write('notes', [n for n in self._read('notes') if n.get('visit_id') != visit_id])
 
+    # Notes
     def get_note_by_visit(self, visit_id: str):
         return next((n for n in self._read('notes') if n.get('visit_id') == visit_id), None)
 
